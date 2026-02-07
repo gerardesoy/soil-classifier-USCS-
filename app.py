@@ -117,8 +117,12 @@ st.markdown("Enter your sieve and plasticity data below to classify the soil.")
 
 # --- SIDEBAR INPUTS ---
 st.sidebar.header("1. Sieve Analysis")
-p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=18.0)
+
+# SWAPPED: No. 4 is now first
 p4 = st.sidebar.number_input("Percent Passing No. 4 (%)", min_value=0.0, max_value=100.0, value=100.0)
+
+# No. 200 is now second
+p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=18.0)
 
 st.sidebar.header("2. Atterberg Limits")
 ll = st.sidebar.number_input("Liquid Limit (LL)", min_value=0.0, value=0.0)
