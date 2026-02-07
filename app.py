@@ -118,6 +118,37 @@ st.markdown("Enter your sieve and plasticity data below to classify the soil.")
 # --- SIDEBAR INPUTS ---
 st.sidebar.header("1. Sieve Analysis")
 
+p4 = st.sidebar.number_input("Percent Passing No. 4 (%)", min_value=0.0, max_value=100.0, value=100.0)
+p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=2.0)
+
+# --- SMART LOGIC START ---
+# Only ask for Atterberg Limits if Fines >= 5%
+ll, pi = 0.0, 0.0 # Default values so code doesn't break
+
+if p200 >= 5.0:
+    st.sidebar.header("2. Atterberg Limits")
+    ll = st.sidebar.number_input("Liquid Limit (LL)", min_value=0.0, value=0.0)
+    
+    pi_input_method = st.sidebar.radio("Input Method:", ["PI directly", "Calculate from PL"])
+
+    if pi_input_method == "PI directly":
+        pi_val = st.sidebar.text_input("Plasticity Index (PI) or 'NP'", value="0")
+        try:
+            if pi_val.upper() == "NP":
+                pi = 0.0
+            else:
+                pi = float(pi_val)
+        except:
+            pi = 0.0
+    else:
+        pl_val = st.sidebar.number_input("Plastic Limit (PL)", value=0.0)
+        pi = ll - pl_val
+        if pi < 0: pi = 0
+        st.sidebar.info(f"Calculated PI: {pi}")
+else:
+    st.sidebar.info("ℹ️ Fines < 5%: Atterberg Limits are not required for Group Symbol.")
+# --- SMART LOGIC END ---
+
 # SWAPPED: No. 4 is now first
 p4 = st.sidebar.number_input("Percent Passing No. 4 (%)", min_value=0.0, max_value=100.0, value=100.0)
 
