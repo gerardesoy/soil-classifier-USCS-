@@ -152,17 +152,23 @@ cu, cc = None, None
 if p200 <= 12 and p200 < 50:
     with st.sidebar.expander("Grading Coefficients (Required for Coarse)", expanded=True):
         input_type = st.radio("Grading Input:", ["Enter Cu/Cc", "Enter D-sizes"])
+        
         if input_type == "Enter Cu/Cc":
-            cu = st.number_input("Cu", value=0.0)
-            cc = st.number_input("Cc", value=0.0)
+            cu = st.number_input("Coefficient of Uniformity (Cu)", value=0.0)
+            cc = st.number_input("Coefficient of Curvature (Cc)", value=0.0)
         else:
-            d10 = st.number_input("D10", value=0.0)
-            d30 = st.number_input("D30", value=0.0)
-            d60 = st.number_input("D60", value=0.0)
-            if d10 > 0:
+            st.write("Enter grain sizes in mm:")
+            d10 = st.number_input("D10", value=0.0, format="%.3f")
+            d30 = st.number_input("D30", value=0.0, format="%.3f")
+            d60 = st.number_input("D60", value=0.0, format="%.3f")
+            
+            # THE FIX: Only calculate if D10 and D60 are not zero
+            if d10 > 0 and d60 > 0:
                 cu = d60 / d10
                 cc = (d30**2) / (d10 * d60)
-                st.info(f"Calc: Cu={cu:.2f}, Cc={cc:.2f}")
+                st.info(f"Calculated: Cu={cu:.2f}, Cc={cc:.2f}")
+            else:
+                st.warning("Please enter valid D10 and D60 values (must be > 0).")
 
 # ==========================================
 # PART 3: MAIN DISPLAY & PLOTS
