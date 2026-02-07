@@ -2,7 +2,7 @@
 
 A Python-based tool for automating soil classification according to the **ASTM D2487** standard. This application handles complex geotechnical scenarios including dual symbols, the "hatched zone" (CL-ML), and organic soil detection.
 
-Designed for Civil Engineering students, laboratory professionals, and geotechnical review.
+Designed for Civil Engineering students, and geotechnical review.
 
 ## 🚀 Features
 
@@ -35,7 +35,7 @@ Designed for Civil Engineering students, laboratory professionals, and geotechni
     streamlit run app.py
     ```
 
-## 📊 Standards Reference
+## 📊 Standards Reference (Principles of Geotechnical Engineering by Das B. et al (8th ed)
 This tool implements logic derived from:
 * **ASTM D2487:** Standard Practice for Classification of Soils for Engineering Purposes (Unified Soil Classification System).
 * **Table 5.2:** Criteria for assigning group symbols.
