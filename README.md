@@ -41,7 +41,7 @@ This tool implements logic derived from:
 * **Table 5.2:** Criteria for assigning group symbols.
 * **Figure 5.3:** Plasticity Chart logic.
 
-![App Demo](demo_screenshot.png)
+![App Demo](https://github.com/gerardesoy/soil-classifier-USCS-/blob/main/demo_screenshot.PNG?raw=true)
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
