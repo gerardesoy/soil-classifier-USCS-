@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # ==========================================
-# PART 1: THE LOGIC ENGINE (Your Code)
+# PART 1: THE LOGIC ENGINE
 # ==========================================
 
 def calculate_components(p200, p4):
@@ -110,9 +110,9 @@ def get_name_coarse(symbol, pct_gravel, pct_sand):
 # PART 2: THE STREAMLIT UI
 # ==========================================
 
-st.set_page_config(page_title="USCS Soil Classifier", page_icon="🌍")
+st.set_page_config(page_title="USCS Soil Classifier", page_icon="🌱")
 
-st.title("🌍 ASTM D2487 Soil Classifier")
+st.title("ASTM D2487 Soil Classifier")
 st.markdown("Enter your sieve and plasticity data below to classify the soil.")
 
 # --- SIDEBAR INPUTS ---
@@ -169,17 +169,13 @@ if p200 <= 12 and p200 < 50:
 # ==========================================
 
 # 1. RUN CLASSIFICATION LOGIC
-# Calculate the raw components first
 pct_gravel, pct_sand, pct_fines = calculate_components(p200, p4)
 plus_200 = 100 - p200
 
-# Run the correct classification function based on Fines %
 if p200 >= 50:
-    # Fine-grained logic
     symbol = get_fine_grained_symbol(ll, pi, is_organic)
     name = get_name_fine(symbol, pct_gravel, pct_sand, plus_200)
 else:
-    # Coarse-grained logic
     symbol = classify_coarse_grained(pct_gravel, pct_sand, pct_fines, ll, pi, cu, cc)
     name = get_name_coarse(symbol, pct_gravel, pct_sand)
 
@@ -193,19 +189,31 @@ with col2:
 
 st.write(f"**Components:** 🪨 Gravel: {pct_gravel:.1f}% | ⏳ Sand: {pct_sand:.1f}% | 🌫️ Fines: {pct_fines:.1f}%")
 
-# 3. PLOT PLASTICITY CHART (MATCHING FIGURE 5.3)
+# --- U-LINE CHECK ---
+# Calculate the max PI allowed for this specific LL
+
+pi_max = 0.9 * (ll - 8)
+
+if pi > pi_max and pi > 0:
+    st.error(f"⚠️ Warning: Your point ({ll}, {pi}) plots above the U-Line!")
+    st.warning("This indicates a likely error in your test data. Natural soils generally do not plot in this region. Please verify your Liquid Limit and Plastic Limit values.")
+
+# 3. PLOT PLASTICITY CHART
 st.subheader("Plasticity Chart Visualization")
 
 # Create the figure
 fig, ax = plt.subplots(figsize=(8, 6))
 
+# --- DYNAMIC SCALING ---
+max_x = max(100, ll + 20)
+max_y = max(70, pi + 20)
+
 # A. SETUP LINES
-# Range of Liquid Limit (0 to 100)
-x = np.linspace(0, 100, 200)
+x = np.linspace(0, max_x, 200)
 
 # A-Line: PI = 0.73(LL - 20)
 a_line = 0.73 * (x - 20)
-a_line[a_line < 0] = 0  # No negative PI
+a_line[a_line < 0] = 0
 
 # U-Line: PI = 0.9(LL - 8)
 u_line = 0.9 * (x - 8)
@@ -214,45 +222,39 @@ u_line[u_line < 0] = 0
 # Plot Lines
 ax.plot(x, a_line, 'b-', linewidth=2, label="A-Line")
 ax.plot(x, u_line, 'k--', linewidth=1.5, label="U-Line")
-ax.axvline(x=50, color='k', linestyle='-', linewidth=1) # Vertical line at LL=50
+ax.axvline(x=50, color='k', linestyle='-', linewidth=1)
 
-# B. CREATE THE "HATCHED ZONE" (CL-ML)
-# This is the zone where 4 <= PI <= 7 AND it is above the A-Line.
-# Geometrically, this is bounded by PI=4, PI=7, and the A-line on the right.
-# We fill the area between LL=10 (approx) and the A-line intersection.
-y_low = np.full_like(x, 4)
-y_high = np.full_like(x, 7)
-
-# We want to fill where PI is between 4 and 7, AND PI >= A-line.
-# Since A-line is the "floor" for clays, we fill between max(4, A-line) and 7.
-# Intersection of A-line and PI=7 is at LL = 29.6
+# B. HATCHED ZONE (CL-ML)
 ax.fill_between(x, np.maximum(a_line, 4), 7, 
                 where=(x > 10) & (x < 29.6) & (7 > a_line),
-                facecolor='none', hatch='///', edgecolor='gray', label="CL-ML Zone")
+                facecolor='none', hatch='///', edgecolor='gray', alpha=0.5, label="CL-ML Zone")
 
-# C. LABELS (Matching Figure 5.3)
-ax.text(75, 55, "CH or OH", fontsize=12, color='blue', ha='center')
-ax.text(75, 20, "MH or OH", fontsize=12, color='blue', ha='center')
-ax.text(38, 28, "CL or OL", fontsize=12, color='blue', ha='center')
-ax.text(38, 5,  "ML or OL", fontsize=12, color='blue', ha='center')
-ax.text(20, 8,  "CL-ML",    fontsize=10, color='gray', ha='center')
+# C. LABELS (Positioned & Opacity)
+def get_mid_y(x_val):
+    a_y = 0.73 * (x_val - 20)
+    u_y = 0.9 * (x_val - 8)
+    return (a_y + u_y) / 2
+
+# High Plasticity
+ax.text(77, get_mid_y(75), "CH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+ax.text(75, 20, "MH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+
+# Low Plasticity
+ax.text(37, get_mid_y(35), "CL or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+ax.text(40, 6, "ML or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+ax.text(25, 8, "CL-ML",    fontsize=10, color='gray', ha='center', alpha=0.6)
 
 # D. PLOT USER DATA
-# Plot the red dot for the user's specific soil
 ax.plot(ll, pi, 'ro', markersize=12, markeredgecolor='white', markeredgewidth=2, label="Your Soil", zorder=5)
-
-# Add a tooltip-like annotation
-ax.annotate(f"  ({ll}, {pi})", xy=(ll, pi), xytext=(ll+3, pi),
-            arrowprops=dict(facecolor='black', shrink=0.05))
+ax.text(ll + 2, pi, f"({ll}, {pi})", fontsize=10, color='black', fontweight='bold')
 
 # E. FORMATTING
-ax.set_xlim(0, 100)
-ax.set_ylim(0, 70)
+ax.set_xlim(0, max_x)
+ax.set_ylim(0, max_y)
 ax.set_xlabel("Liquid Limit (LL)")
 ax.set_ylabel("Plasticity Index (PI)")
 ax.set_title("ASTM D2487 Plasticity Chart")
 ax.legend(loc='upper left')
 ax.grid(True, linestyle='--', alpha=0.5)
 
-# Show in Streamlit
 st.pyplot(fig)
