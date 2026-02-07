@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # ==========================================
-# PART 1: THE LOGIC ENGINE
+# PART 1: LOGIC ENGINE
 # ==========================================
 
 def calculate_components(p200, p4):
@@ -107,7 +107,7 @@ def get_name_coarse(symbol, pct_gravel, pct_sand):
     return "Unknown Soil Name"
 
 # ==========================================
-# PART 2: THE STREAMLIT UI
+# PART 2: USER INTERFACE
 # ==========================================
 
 st.set_page_config(page_title="USCS Soil Classifier", page_icon="🌱")
@@ -117,13 +117,11 @@ st.markdown("Enter your sieve and plasticity data below to classify the soil.")
 
 # --- SIDEBAR INPUTS ---
 st.sidebar.header("1. Sieve Analysis")
-
 p4 = st.sidebar.number_input("Percent Passing No. 4 (%)", min_value=0.0, max_value=100.0, value=100.0)
-p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=2.0)
+p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=12.0)
 
-# --- SMART LOGIC START ---
-# Only ask for Atterberg Limits if Fines >= 5%
-ll, pi = 0.0, 0.0 # Default values so code doesn't break
+# --- SMART ATTERBERG LIMITS LOGIC ---
+ll, pi = 0.0, 0.0 # Defaults
 
 if p200 >= 5.0:
     st.sidebar.header("2. Atterberg Limits")
@@ -146,32 +144,7 @@ if p200 >= 5.0:
         if pi < 0: pi = 0
         st.sidebar.info(f"Calculated PI: {pi}")
 else:
-    st.sidebar.info("ℹ️ Fines < 5%: Atterberg Limits are not required for Group Symbol.")
-# --- SMART LOGIC END ---
-
-# SWAPPED: No. 4 is now first
-p4 = st.sidebar.number_input("Percent Passing No. 4 (%)", min_value=0.0, max_value=100.0, value=100.0)
-
-# No. 200 is now second
-p200 = st.sidebar.number_input("Percent Passing No. 200 (%)", min_value=0.0, max_value=100.0, value=18.0)
-
-st.sidebar.header("2. Atterberg Limits")
-ll = st.sidebar.number_input("Liquid Limit (LL)", min_value=0.0, value=0.0)
-pi_input_method = st.sidebar.radio("Input Method:", ["PI directly", "Calculate from PL"])
-
-if pi_input_method == "PI directly":
-    pi_val = st.sidebar.text_input("Plasticity Index (PI) or 'NP'", value="5")
-    try:
-        if pi_val.upper() == "NP":
-            pi = 0.0
-        else:
-            pi = float(pi_val)
-    except:
-        pi = 0.0
-else:
-    pl_val = st.sidebar.number_input("Plastic Limit (PL)", value=0.0)
-    pi = ll - pl_val
-    st.sidebar.info(f"Calculated PI: {pi}")
+    st.sidebar.info("Atterberg Limits not required for Fines < 5%.")
 
 # --- ORGANIC CHECK ---
 with st.sidebar.expander("Organic Soil Check (Optional)"):
@@ -197,7 +170,6 @@ if p200 <= 12 and p200 < 50:
             d30 = st.number_input("D30", value=0.0, format="%.3f")
             d60 = st.number_input("D60", value=0.0, format="%.3f")
             
-            # THE FIX: Only calculate if D10 and D60 are not zero
             if d10 > 0 and d60 > 0:
                 cu = d60 / d10
                 cc = (d30**2) / (d10 * d60)
@@ -231,71 +203,69 @@ with col2:
 st.write(f"**Components:** 🪨 Gravel: {pct_gravel:.1f}% | ⏳ Sand: {pct_sand:.1f}% | 🌫️ Fines: {pct_fines:.1f}%")
 
 # --- U-LINE CHECK ---
-# Calculate the max PI allowed for this specific LL
-
 pi_max = 0.9 * (ll - 8)
 
 if pi > pi_max and pi > 0:
     st.error(f"⚠️ Warning: Your point ({ll}, {pi}) plots above the U-Line!")
-    st.warning("This indicates a likely error in your test data. Natural soils generally do not plot in this region. Please verify your Liquid Limit and Plastic Limit values.")
+    st.warning("This indicates a likely error in your test data. Natural soils generally do not plot in this region.")
 
 # 3. PLOT PLASTICITY CHART
-st.subheader("Plasticity Chart Visualization")
+if p200 >= 5.0: # Only plot if we have limits
+    st.subheader("Plasticity Chart Visualization")
 
-# Create the figure
-fig, ax = plt.subplots(figsize=(8, 6))
+    fig, ax = plt.subplots(figsize=(8, 6))
 
-# --- DYNAMIC SCALING ---
-max_x = max(100, ll + 20)
-max_y = max(70, pi + 20)
+    # --- DYNAMIC SCALING ---
+    max_x = max(100, ll + 20)
+    max_y = max(70, pi + 20)
 
-# A. SETUP LINES
-x = np.linspace(0, max_x, 200)
+    # A. SETUP LINES
+    x = np.linspace(0, max_x, 200)
 
-# A-Line: PI = 0.73(LL - 20)
-a_line = 0.73 * (x - 20)
-a_line[a_line < 0] = 0
+    # A-Line: PI = 0.73(LL - 20)
+    a_line = 0.73 * (x - 20)
+    a_line[a_line < 0] = 0
 
-# U-Line: PI = 0.9(LL - 8)
-u_line = 0.9 * (x - 8)
-u_line[u_line < 0] = 0
+    # U-Line: PI = 0.9(LL - 8)
+    u_line = 0.9 * (x - 8)
+    u_line[u_line < 0] = 0
 
-# Plot Lines
-ax.plot(x, a_line, 'b-', linewidth=2, label="A-Line")
-ax.plot(x, u_line, 'k--', linewidth=1.5, label="U-Line")
-ax.axvline(x=50, color='k', linestyle='-', linewidth=1)
+    # Plot Lines
+    ax.plot(x, a_line, 'b-', linewidth=2, label="A-Line")
+    ax.plot(x, u_line, 'k--', linewidth=1.5, label="U-Line")
+    ax.axvline(x=50, color='k', linestyle='-', linewidth=1)
 
-# B. HATCHED ZONE (CL-ML)
-ax.fill_between(x, np.maximum(a_line, 4), 7, 
-                where=(x > 10) & (x < 29.6) & (7 > a_line),
-                facecolor='none', hatch='///', edgecolor='gray', alpha=0.5, label="CL-ML Zone")
+    # B. HATCHED ZONE (CL-ML)
+    ax.fill_between(x, np.maximum(a_line, 4), 7, 
+                    where=(x > 10) & (x < 29.6) & (7 > a_line),
+                    facecolor='none', hatch='///', edgecolor='gray', alpha=0.5, label="CL-ML Zone")
 
-# C. LABELS (Positioned & Opacity)
-def get_mid_y(x_val):
-    a_y = 0.73 * (x_val - 20)
-    u_y = 0.9 * (x_val - 8)
-    return (a_y + u_y) / 2
+    # C. LABELS (Positioned & Opacity)
+    def get_mid_y(x_val):
+        a_y = 0.73 * (x_val - 20)
+        u_y = 0.9 * (x_val - 8)
+        return (a_y + u_y) / 2
 
-# High Plasticity
-ax.text(77, get_mid_y(75), "CH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
-ax.text(75, 20, "MH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+    # High Plasticity
+    ax.text(77, get_mid_y(75), "CH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+    ax.text(75, 20, "MH or OH", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
 
-# Low Plasticity
-ax.text(37, get_mid_y(35), "CL or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
-ax.text(40, 6, "ML or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
-ax.text(25, 8, "CL-ML",    fontsize=10, color='gray', ha='center', alpha=0.6)
+    # Low Plasticity
+    ax.text(37, get_mid_y(35), "CL or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+    ax.text(48, 6, "ML or OL", fontsize=12, color='blue', ha='center', alpha=0.4, weight='bold')
+    ax.text(25, 8, "CL-ML",    fontsize=10, color='gray', ha='center', alpha=0.6)
 
-# D. PLOT USER DATA
-ax.plot(ll, pi, 'ro', markersize=12, markeredgecolor='white', markeredgewidth=2, label="Your Soil", zorder=5)
-ax.text(ll + 2, pi, f"({ll}, {pi})", fontsize=10, color='black', fontweight='bold')
+    # D. PLOT USER DATA
+    ax.plot(ll, pi, 'ro', markersize=12, markeredgecolor='white', markeredgewidth=2, label="Your Soil", zorder=5)
+    ax.text(ll + 2, pi, f"({ll}, {pi})", fontsize=10, color='black', fontweight='bold')
 
-# E. FORMATTING
-ax.set_xlim(0, max_x)
-ax.set_ylim(0, max_y)
-ax.set_xlabel("Liquid Limit (LL)")
-ax.set_ylabel("Plasticity Index (PI)")
-ax.set_title("ASTM D2487 Plasticity Chart")
-ax.legend(loc='upper left')
-ax.grid(True, linestyle='--', alpha=0.5)
+    # E. FORMATTING
+    ax.set_xlim(0, max_x)
+    ax.set_ylim(0, max_y)
+    ax.set_xlabel("Liquid Limit (LL)")
+    ax.set_ylabel("Plasticity Index (PI)")
+    ax.set_title("ASTM D2487 Plasticity Chart")
+    ax.legend(loc='upper left')
+    ax.grid(True, linestyle='--', alpha=0.5)
 
-st.pyplot(fig)
+    st.pyplot(fig)
